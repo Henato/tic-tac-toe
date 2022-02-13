@@ -94,28 +94,52 @@ export default class Board {
     return _lines;
   }
 
-  private findForkForPlayer(player: Player): number {
+  private findForkForPlayer(player: Player, options?: { block: boolean }): number {
     let boardSquare = -1;
     const linesWithTwoEmpty = this.getLinesWithTwoEmptySquares(player);
-    const intersections: Record<number, number[]> = {};
+    const intersections: Record<number, Set<number>> = {};
     for (let i = 0; i < 9; i++) {
       linesWithTwoEmpty.forEach((lineIndex) => {
         lines[lineIndex].forEach((boardIndex) => {
           if (this.board[boardIndex] === empty) {
             if (!intersections[boardIndex]) {
-              intersections[boardIndex] = [];
+              intersections[boardIndex] = new Set();
             }
-            intersections[boardIndex].push(lineIndex);
+            intersections[boardIndex].add(lineIndex);
           }
         });
       });
     }
+
+    const forks = [];
     for (const boardIndex in intersections) {
-      if (intersections[boardIndex].length > 1) {
+      if (intersections[boardIndex].size > 1) {
         boardSquare = Number(boardIndex);
-        break;
+        if (options?.block) {
+          forks.push(intersections[boardIndex]);
+        } else {
+          break;
+        }
       }
     }
+
+    if (options?.block && forks.length > 1) {
+      if (
+        corners.some((cornerIndex) => {
+          if (
+            this.board[cornerIndex] === player &&
+            this.board[OppositeCorners[cornerIndex]] === player
+          ) {
+            return true;
+          }
+          return false;
+        }) &&
+        this.board[center] === Opponent[player]
+      ) {
+        boardSquare = this.findEmptySide();
+      }
+    }
+
     return boardSquare;
   }
 
@@ -167,7 +191,7 @@ export default class Board {
   }
 
   private findBlockFork(player: Player): number {
-    return this.findForkForPlayer(Opponent[player]);
+    return this.findForkForPlayer(Opponent[player], { block: true });
   }
 
   private suggestMoveIndex(player: Player): number {

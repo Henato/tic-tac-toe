@@ -33,6 +33,4 @@ router.use((_req, res) => {
 
 const httpServer = http.createServer(router);
 const PORT: unknown = process.env.PORT ?? 6060;
-httpServer.listen(PORT, () =>
-  console.log(`The server is running on port ${PORT}`)
-);
+httpServer.listen(PORT, () => console.log(`The server is running on port ${PORT}`));
