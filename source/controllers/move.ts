@@ -14,13 +14,13 @@ async function getMove(
         const newBoard = board.makeMove(player);
         return res.status(200).json(newBoard);
       } catch (err) {
-        return res.status(500).json(String(err));
+        return res.status(500).json('500: ' + String(err));
       }
     } else {
-      return res.status(400).json("Is is not O's turn!");
+      return res.status(400).json("400: Is is not O's turn!");
     }
   } else {
-    return res.status(400).json('Board is invalid!');
+    return res.status(400).json('400: Board is invalid!');
   }
 }
 
