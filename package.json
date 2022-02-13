@@ -5,9 +5,10 @@
   "main": "source/server.ts",
   "scripts": {
     "dev": "nodemon source/server.ts",
-    "build": "rm -rf build/ && prettier --write source/ && tsc",
+    "build": "tsc",
     "lint": "eslint --cache --cache-location .cache/eslint/ --ext js,cjs,mjs,jsx,ts,tsx .",
-    "test": "jest"
+    "test": "jest",
+    "start": "node build/server.js"
   },
   "repository": {
     "type": "git",
