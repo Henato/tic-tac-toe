@@ -1,11 +1,26 @@
 module.exports = {
     parser: '@typescript-eslint/parser',
     extends: [
+      'eslint:recommended',
+      'plugin:import/errors',
+      'plugin:import/warnings',
+      'plugin:import/typescript',
       'plugin:@typescript-eslint/recommended'
     ],
     parserOptions: {
       ecmaVersion: 2018,
       sourceType: 'module',
+    },
+    plugins: [
+      'filenames',
+      'import',
+      '@typescript-eslint/eslint-plugin'
+    ],
+    env: {
+      es6: true,
+      mocha: true,
+      // Node is used in JAZ packages for HTTP API tests
+      node: true,
     },
     rules: {
       'indent': 'off',
