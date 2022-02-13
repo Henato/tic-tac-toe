@@ -46,7 +46,7 @@ export default class Board {
     this.valueQuantities = this.calcValueQuantities(this.board);
     return (
       [...Object.keys(this.valueQuantities)].every((key) => ValidValues.has(key)) &&
-      Math.abs(this.valueQuantities.x - this.valueQuantities.o) <= 1
+      Math.abs((this.valueQuantities.x || 0) - (this.valueQuantities.o || 0)) <= 1
     );
   }
 
@@ -55,7 +55,7 @@ export default class Board {
   }
 
   private calcValueQuantities(boardFragment: string[]): Record<string, number> {
-    const valueQuantities: Record<string, number> = {};
+    const valueQuantities: Record<string, number> = { x: 0, o: 0, [empty]: 0 };
     boardFragment.forEach((value) => {
       const current = valueQuantities[value];
       valueQuantities[value] = current === undefined ? 1 : current + 1;
