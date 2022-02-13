@@ -34,6 +34,18 @@ it('blocks opponent from forking', () => {
   board = new Board('x     ox ');
   after = board.makeMove('o');
   assert.equal(after, 'x   o ox ');
+
+  board = new Board('x    o x ');
+  after = board.makeMove('o');
+  assert.equal(after, 'x   oo x ');
+
+  board = new Board('x   x   o');
+  after = board.makeMove('o');
+  assert(after === 'x o x   o' || after === 'x   x o o');
+
+  board = new Board('o   x   x');
+  after = board.makeMove('o');
+  assert(after === 'o o x   x' || after === 'o   x o x');
 });
 
 it('marks the center', () => {

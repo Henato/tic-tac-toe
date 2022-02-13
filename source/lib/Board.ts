@@ -1,4 +1,5 @@
 type Player = 'o' | 'x';
+type Turn = [[Player, number], [Player, number]];
 
 const empty = ' ';
 const ValidValues = new Set(['o', 'x', empty]);
@@ -24,6 +25,168 @@ const corners = [0, 2, 6, 8];
 const sides = [1, 3, 5, 7];
 const center = 4;
 
+function getBoardFragment(line: number[], board: string[]): string[] {
+  return line.map((index) => board[index]);
+}
+
+function findWinnableSquare(player: Player, board: string[]): number {
+  let boardSquare = -1;
+  lines.some((line) => {
+    const fragment = getBoardFragment(line, board);
+    const valueQuantities = calcValueQuantities(fragment);
+    if (valueQuantities[player] === 2 && valueQuantities[empty] === 1) {
+      boardSquare = line[fragment.indexOf(empty)];
+      return true;
+    } else {
+      return false;
+    }
+  });
+  return boardSquare;
+}
+
+function calcValueQuantities(boardFragment: string[]): Record<string, number> {
+  const valueQuantities: Record<string, number> = { x: 0, o: 0, [empty]: 0 };
+  boardFragment.forEach((value) => {
+    const current = valueQuantities[value];
+    valueQuantities[value] = current === undefined ? 1 : current + 1;
+  });
+  return valueQuantities;
+}
+
+function turnBlockDoubleFork(turn: Turn, board: string[]): boolean {
+  const newBoard = [...board];
+  const player = turn[0][0];
+  const opponent = Opponent[player];
+  newBoard[turn[0][1]] = turn[0][0];
+  const winSquare = findWinnableSquare(opponent, newBoard);
+  if (winSquare !== -1) {
+    newBoard[turn[1][1]] = turn[1][0];
+    const forkSquare = findForkForPlayer(opponent, newBoard);
+    if (forkSquare !== -1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function findBlockDoubleFork(player: Player, board: string[]): number {
+  let boardSquare = -1;
+  lines.some((line) => {
+    const fragment = getBoardFragment(line, board);
+    const quantities = calcValueQuantities(fragment);
+    if (quantities[player] === 1 && quantities[empty] === 2) {
+      const firstEmpty = line[fragment.indexOf(' ')];
+      const lastEmpty = line[fragment.lastIndexOf(' ')];
+
+      if (
+        turnBlockDoubleFork(
+          [
+            [player, firstEmpty],
+            [Opponent[player], lastEmpty],
+          ],
+          board
+        )
+      ) {
+        boardSquare = firstEmpty;
+        return true;
+      } else if (
+        turnBlockDoubleFork(
+          [
+            [player, lastEmpty],
+            [Opponent[player], firstEmpty],
+          ],
+          board
+        )
+      ) {
+        boardSquare = lastEmpty;
+        return true;
+      }
+    }
+    return false;
+  });
+  return boardSquare;
+}
+
+function findForkForPlayer(
+  player: Player,
+  board: string[],
+  options?: { block: boolean }
+): number {
+  let boardSquare = -1;
+  const linesWithTwoEmpty = getLinesWithTwoEmptySquares(player, board);
+  const intersections: Record<number, Set<number>> = {};
+  for (let i = 0; i < 9; i++) {
+    linesWithTwoEmpty.forEach((lineIndex) => {
+      lines[lineIndex].forEach((boardIndex) => {
+        if (board[boardIndex] === empty) {
+          if (!intersections[boardIndex]) {
+            intersections[boardIndex] = new Set();
+          }
+          intersections[boardIndex].add(lineIndex);
+        }
+      });
+    });
+  }
+  const forks = [];
+  for (const boardIndex in intersections) {
+    if (intersections[boardIndex].size > 1) {
+      boardSquare = Number(boardIndex);
+      if (options?.block) {
+        forks.push(intersections[boardIndex]);
+      } else {
+        break;
+      }
+    }
+  }
+  if (options?.block && forks.length > 1) {
+    if (
+      corners.some((cornerIndex) => {
+        if (
+          board[cornerIndex] === player &&
+          board[OppositeCorners[cornerIndex]] === player
+        ) {
+          return true;
+        }
+        return false;
+      }) &&
+      board[center] === Opponent[player]
+    ) {
+      boardSquare = findEmptySide(board);
+    } else {
+      boardSquare = findBlockDoubleFork(Opponent[player], board);
+    }
+  }
+  return boardSquare;
+}
+
+function getLinesWithTwoEmptySquares(player: Player, board: string[]): number[] {
+  const _lines: number[] = [];
+  lines.forEach((line, lineIndex) => {
+    const fragment = getBoardFragment(line, board);
+    const valueQuantities = calcValueQuantities(fragment);
+    if (valueQuantities[player] === 1 && valueQuantities[empty] === 2) {
+      _lines.push(lineIndex);
+    }
+  });
+  return _lines;
+}
+
+function findEmptySide(board: string[]): number {
+  return findEmptySquare(sides, board);
+}
+
+function findEmptySquare(squareSet: number[], board: string[]): number {
+  let boardSquare = -1;
+  squareSet.some((squareIndex) => {
+    if (board[squareIndex] === empty) {
+      boardSquare = squareIndex;
+      return true;
+    }
+    return false;
+  });
+  return boardSquare;
+}
+
 export default class Board {
   private board: string[];
   private valueQuantities: Record<string, number> = {};
@@ -43,124 +206,31 @@ export default class Board {
   }
 
   private validateValues(): boolean {
-    this.valueQuantities = this.calcValueQuantities(this.board);
+    this.valueQuantities = calcValueQuantities(this.board);
     return (
       [...Object.keys(this.valueQuantities)].every((key) => ValidValues.has(key)) &&
       Math.abs((this.valueQuantities.x || 0) - (this.valueQuantities.o || 0)) <= 1
     );
   }
 
-  private getBoardFragment(line: number[]): string[] {
-    return line.map((index) => this.board[index]);
-  }
-
-  private calcValueQuantities(boardFragment: string[]): Record<string, number> {
-    const valueQuantities: Record<string, number> = { x: 0, o: 0, [empty]: 0 };
-    boardFragment.forEach((value) => {
-      const current = valueQuantities[value];
-      valueQuantities[value] = current === undefined ? 1 : current + 1;
-    });
-    return valueQuantities;
-  }
-
   private isFirstMove(): boolean {
     return this.valid && this.valueQuantities[empty] === 9;
   }
 
-  private getEmptyWithTwoInARow(player: Player): number {
-    let boardSquare = -1;
-    lines.some((line) => {
-      const fragment = this.getBoardFragment(line);
-      const valueQuantities = this.calcValueQuantities(fragment);
-      if (valueQuantities[player] === 2 && valueQuantities[empty] === 1) {
-        boardSquare = line[fragment.indexOf(empty)];
-        return true;
-      } else {
-        return false;
-      }
-    });
-    return boardSquare;
+  private findWin(player: Player): number {
+    return findWinnableSquare(player, this.board);
   }
 
-  private getLinesWithTwoEmptySquares(player: Player): number[] {
-    const _lines: number[] = [];
-    lines.forEach((line, lineIndex) => {
-      const fragment = this.getBoardFragment(line);
-      const valueQuantities = this.calcValueQuantities(fragment);
-      if (valueQuantities[player] === 1 && valueQuantities[empty] === 2) {
-        _lines.push(lineIndex);
-      }
-    });
-    return _lines;
+  private findBlock(player: Player): number {
+    return findWinnableSquare(Opponent[player], this.board);
   }
 
-  private findForkForPlayer(player: Player, options?: { block: boolean }): number {
-    let boardSquare = -1;
-    const linesWithTwoEmpty = this.getLinesWithTwoEmptySquares(player);
-    const intersections: Record<number, Set<number>> = {};
-    for (let i = 0; i < 9; i++) {
-      linesWithTwoEmpty.forEach((lineIndex) => {
-        lines[lineIndex].forEach((boardIndex) => {
-          if (this.board[boardIndex] === empty) {
-            if (!intersections[boardIndex]) {
-              intersections[boardIndex] = new Set();
-            }
-            intersections[boardIndex].add(lineIndex);
-          }
-        });
-      });
-    }
-
-    const forks = [];
-    for (const boardIndex in intersections) {
-      if (intersections[boardIndex].size > 1) {
-        boardSquare = Number(boardIndex);
-        if (options?.block) {
-          forks.push(intersections[boardIndex]);
-        } else {
-          break;
-        }
-      }
-    }
-
-    if (options?.block && forks.length > 1) {
-      if (
-        corners.some((cornerIndex) => {
-          if (
-            this.board[cornerIndex] === player &&
-            this.board[OppositeCorners[cornerIndex]] === player
-          ) {
-            return true;
-          }
-          return false;
-        }) &&
-        this.board[center] === Opponent[player]
-      ) {
-        boardSquare = this.findEmptySide();
-      }
-    }
-
-    return boardSquare;
+  private findFork(player: Player): number {
+    return findForkForPlayer(player, this.board);
   }
 
-  private findEmptySquare(squareSet: number[]): number {
-    let boardSquare = -1;
-    squareSet.some((squareIndex) => {
-      if (this.board[squareIndex] === empty) {
-        boardSquare = squareIndex;
-        return true;
-      }
-      return false;
-    });
-    return boardSquare;
-  }
-
-  private findEmptyCorner(): number {
-    return this.findEmptySquare(corners);
-  }
-
-  private findEmptySide(): number {
-    return this.findEmptySquare(sides);
+  private findBlockFork(player: Player): number {
+    return findForkForPlayer(Opponent[player], this.board, { block: true });
   }
 
   private findOppositeCorner(player: Player): number {
@@ -178,20 +248,8 @@ export default class Board {
     return boardSquare;
   }
 
-  private findWin(player: Player): number {
-    return this.getEmptyWithTwoInARow(player);
-  }
-
-  private findBlock(player: Player): number {
-    return this.getEmptyWithTwoInARow(Opponent[player]);
-  }
-
-  private findFork(player: Player): number {
-    return this.findForkForPlayer(player);
-  }
-
-  private findBlockFork(player: Player): number {
-    return this.findForkForPlayer(Opponent[player], { block: true });
+  private findEmptyCorner(): number {
+    return findEmptySquare(corners, this.board);
   }
 
   private suggestMoveIndex(player: Player): number {
@@ -215,7 +273,7 @@ export default class Board {
                 if (moveIndex === -1) {
                   moveIndex = this.findEmptyCorner();
                   if (moveIndex === -1) {
-                    moveIndex = this.findEmptySide();
+                    moveIndex = findEmptySide(this.board);
                   }
                 }
               }
