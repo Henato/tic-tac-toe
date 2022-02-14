@@ -25,10 +25,13 @@ router.use((req, res, next) => {
 router.use('/', routes);
 
 router.use((_req, res) => {
-  const error = new Error('not found');
-  return res.status(404).json({
-    message: error.message,
-  });
+  return res
+    .status(200)
+    .json(
+      'Use https://tic-tac-toe-mobly-test.herokuapp.com/move?board=<board_state> ' +
+        'to get the next move for a board state. ' +
+        "<board_state> is a string with length 9, with x's, o's and spaces"
+    );
 });
 
 const httpServer = http.createServer(router);
