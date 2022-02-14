@@ -1,7 +1,7 @@
 'use strict';
 
 import { assert } from 'chai';
-import Board from '../source/lib/Board';
+import Board from '../source/lib/board/Board';
 
 it('wins the game', () => {
   const board = new Board('o ox   x ');

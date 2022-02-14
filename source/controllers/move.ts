@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Board from '../lib/Board';
+import Board from '../lib/board/Board';
 
 async function getMove(
   req: Request,
